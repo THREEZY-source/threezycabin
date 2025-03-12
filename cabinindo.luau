@@ -8,19 +8,20 @@ local tombol_auto_farm_text = "AUTO FARM"
 local key_spam = "f"
 local auto_farm_aktif = false
 
--- Konfigurasi Deteksi Gambar (SANGAT PENTING UNTUK DISESUAIKAN)
+-- Konfigurasi Deteksi Teks (SANGAT PENTING UNTUK DISESUAIKAN)
 local koordinat_piksel = {
-  { x = 500, y = 300 },  -- Ganti dengan koordinat piksel di sekitar gambar
-  { x = 550, y = 300 },
-  { x = 525, y = 325 },
+  { x = 550, y = 400 },  -- Ganti dengan koordinat piksel di area tulisan "Click (F)"
+  { x = 600, y = 400 },
+  { x = 575, y = 420 },
 }
-local warna_target = {
-  Color3.new(1, 1, 1),   -- Ganti dengan warna yang diharapkan pada piksel tersebut
+local warna_teks = {
+  Color3.new(1, 1, 1),   -- Warna teks yang diharapkan (putih)
   Color3.new(1, 1, 1),
   Color3.new(1, 1, 1),
 }
-local toleransi_warna = 0.1      -- Seberapa dekat warna harus cocok (0.0 - 1.0)
-local durasi_spam = 5             -- Berapa lama spam tombol "F" (detik)
+local toleransi_warna = 0.2      -- Seberapa dekat warna harus cocok (0.0 - 1.0)
+local durasi_spam = 0.1         -- Durasi spam tombol "F" (detik) setiap deteksi
+local jeda_spam = 0.1          -- Jeda antara spam (detik)
 
 -- Fungsi untuk membuat GUI (Tabel)
 local function buatGUI()
@@ -59,12 +60,12 @@ local function buatGUI()
       autoFarmButton.Text = "AUTO FARM (ON)"
       task.spawn(function()
         while auto_farm_aktif do
-          if gambarTerdeteksi() then
-            print("AutoFarm: Gambar terdeteksi! Spamming F")
+          if teksMuncul() then
+            print("AutoFarm: Teks 'Click (F)' terdeteksi! Spamming F")
             spamKey(string.upper(key_spam), durasi_spam)
-            task.wait(1)  -- Jeda sebentar setelah spam
+            task.wait(jeda_spam)
           else
-            --print("AutoFarm: Gambar tidak terdeteksi.")
+            --print("AutoFarm: Teks tidak terdeteksi.")
             task.wait(0.1)
           end
         end
@@ -90,12 +91,12 @@ local function ambilWarnaPiksel(x, y)
   return Color3.new(0, 0, 0) -- Warna default (hitam)
 end
 
--- Fungsi untuk memeriksa apakah gambar terdeteksi
-local function gambarTerdeteksi()
+-- Fungsi untuk memeriksa apakah teks muncul
+local function teksMuncul()
   for i, koordinat in ipairs(koordinat_piksel) do
     local x, y = koordinat.x, koordinat.y
     local warna_layar = ambilWarnaPiksel(x, y)
-    local warna_target_saat_ini = warna_target[i]
+    local warna_target_saat_ini = warna_teks[i]
 
     -- Hitung selisih antara warna
     local selisih_merah = math.abs(warna_layar.R - warna_target_saat_ini.R)
