@@ -44,18 +44,29 @@ local function buatGUI()
   autoFarmButton.Parent = frame
 
   autoFarmButton.MouseButton1Click:Connect(function()
+    print("AutoFarm: Tombol Auto Farm diklik!") -- DEBUG
+
+    print("AutoFarm: Nilai auto_farm_aktif sebelum: " .. tostring(auto_farm_aktif)) -- DEBUG
     auto_farm_aktif = not auto_farm_aktif
+    print("AutoFarm: Nilai auto_farm_aktif sesudah: " .. tostring(auto_farm_aktif)) -- DEBUG
+
     if auto_farm_aktif then
       autoFarmButton.Text = "AUTO FARM (ON)"
-      -- Gunakan coroutine.wrap
-      local farmCoroutine = coroutine.wrap(function()
+
+      local farmCoroutine = coroutine.create(function()
+        print("AutoFarm: Coroutine dimulai!") -- DEBUG
         while auto_farm_aktif do
           autoFarm()
           task.wait()
         end
         autoFarmButton.Text = tombol_auto_farm_text
+        print("AutoFarm: Coroutine berhenti!") -- DEBUG
       end)
-      farmCoroutine() -- Jalankan coroutine
+
+      local success, message = coroutine.resume(farmCoroutine)
+      if not success then
+        warn("AutoFarm: Error dalam coroutine: " .. tostring(message))
+      end
     else
       autoFarmButton.Text = tombol_auto_farm_text
     end
