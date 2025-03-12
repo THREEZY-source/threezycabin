@@ -7,21 +7,7 @@ local gui_nama = "Auto Farm Script"
 local tombol_auto_farm_text = "AUTO FARM"
 local key_spam = "f"
 local auto_farm_aktif = false
-
--- Konfigurasi Deteksi Teks (SANGAT PENTING UNTUK DISESUAIKAN)
-local koordinat_piksel = {
-  { x = 550, y = 400 },  -- Ganti dengan koordinat piksel di area tulisan "Click (F)"
-  { x = 600, y = 400 },
-  { x = 575, y = 420 },
-}
-local warna_teks = {
-  Color3.new(1, 1, 1),   -- Warna teks yang diharapkan (putih)
-  Color3.new(1, 1, 1),
-  Color3.new(1, 1, 1),
-}
-local toleransi_warna = 0.2      -- Seberapa dekat warna harus cocok (0.0 - 1.0)
-local durasi_spam = 0.1         -- Durasi spam tombol "F" (detik) setiap deteksi
-local jeda_spam = 0.1          -- Jeda antara spam (detik)
+local show_click_f_event_name = "ShowClickFEvent" -- Ganti dengan nama RemoteEvent yang benar!
 
 -- Fungsi untuk membuat GUI (Tabel)
 local function buatGUI()
@@ -58,19 +44,6 @@ local function buatGUI()
     auto_farm_aktif = not auto_farm_aktif
     if auto_farm_aktif then
       autoFarmButton.Text = "AUTO FARM (ON)"
-      task.spawn(function()
-        while auto_farm_aktif do
-          if teksMuncul() then
-            print("AutoFarm: Teks 'Click (F)' terdeteksi! Spamming F")
-            spamKey(string.upper(key_spam), durasi_spam)
-            task.wait(jeda_spam)
-          else
-            --print("AutoFarm: Teks tidak terdeteksi.")
-            task.wait(0.1)
-          end
-        end
-        autoFarmButton.Text = tombol_auto_farm_text
-      end)
     else
       autoFarmButton.Text = tombol_auto_farm_text
     end
@@ -79,49 +52,55 @@ local function buatGUI()
   return screenGui
 end
 
--- Fungsi untuk mengambil warna piksel (Mungkin Tidak Berfungsi)
-local function ambilWarnaPiksel(x, y)
-  -- Exploit-specific code diperlukan di sini untuk mengambil warna piksel
-  -- Ini adalah bagian yang PALING SULIT dan mungkin tidak mungkin
-  -- Beberapa exploit memiliki fungsi untuk membaca memori game atau menggunakan API Windows
-  -- Contoh PALSU:
-  -- local warna = exploit.ambilWarna(x, y)
-  -- return warna
-  -- Jika tidak ada cara untuk mengambil warna piksel, fungsi ini harus selalu mengembalikan warna default
-  return Color3.new(0, 0, 0) -- Warna default (hitam)
-end
-
--- Fungsi untuk memeriksa apakah teks muncul
-local function teksMuncul()
-  for i, koordinat in ipairs(koordinat_piksel) do
-    local x, y = koordinat.x, koordinat.y
-    local warna_layar = ambilWarnaPiksel(x, y)
-    local warna_target_saat_ini = warna_teks[i]
-
-    -- Hitung selisih antara warna
-    local selisih_merah = math.abs(warna_layar.R - warna_target_saat_ini.R)
-    local selisih_hijau = math.abs(warna_layar.G - warna_target_saat_ini.G)
-    local selisih_biru = math.abs(warna_layar.B - warna_target_saat_ini.B)
-
-    if selisih_merah > toleransi_warna or selisih_hijau > toleransi_warna or selisih_biru > toleransi_warna then
-      return false  -- Warna tidak cocok
-    end
-  end
-  return true -- Semua warna cocok
-end
-
 -- Fungsi untuk melakukan spam tombol
 local function spamKey(key, duration)
   local UserInputService = game:GetService("UserInputService")
+  if not UserInputService then
+    warn("AutoFarm: UserInputService tidak tersedia!")
+    return
+  end
+
   local endTime = time() + duration
+  local keyCode = Enum.KeyCode[string.upper(key)]
+  if not keyCode then
+    warn("AutoFarm: Keycode invalid: " .. key)
+    return
+  end
+
+  --print("AutoFarm: Memulai spam tombol " .. key) --Jangan terlalu sering print
   while time() < endTime do
-    UserInputService:SimulateKeyStroke(Enum.KeyCode[string.upper(key)], true)
+    UserInputService:SimulateKeyStroke(keyCode, true)
     task.wait(0.05)
-    UserInputService:SimulateKeyStroke(Enum.KeyCode[string.upper(key)], false)
+    UserInputService:SimulateKeyStroke(keyCode, false)
     task.wait(0.05)
   end
+  --print("AutoFarm: Selesai spam tombol " .. key) --Jangan terlalu sering print
+end
+
+-- Fungsi untuk meng-override RemoteEvent (SANGAT BERISIKO)
+local function overrideRemoteEvent()
+  local ReplicatedStorage = game:GetService("ReplicatedStorage")
+  local ShowClickFEvent = ReplicatedStorage:WaitForChild(show_click_f_event_name)
+
+  if not ShowClickFEvent then
+    warn("AutoFarm: RemoteEvent '" .. show_click_f_event_name .. "' tidak ditemukan!")
+    return
+  end
+
+  local oldFireClient = ShowClickFEvent.FireClient
+  ShowClickFEvent.FireClient = function(self, player, ...)
+    print("AutoFarm: RemoteEvent '" .. show_click_f_event_name .. "' di-fire ke player!")
+    spamKey(string.upper(key_spam), 2) -- Spam selama 2 detik (sesuaikan)
+
+    return oldFireClient(self, player, ...)
+  end
+
+  print("AutoFarm: RemoteEvent '" .. show_click_f_event_name .. "' berhasil di-override (BERISIKO!)")
 end
 
 -- Inisialisasi GUI
 buatGUI()
 print("AutoFarm: Script diinisialisasi")
+
+-- Override RemoteEvent saat script dijalankan
+overrideRemoteEvent()
