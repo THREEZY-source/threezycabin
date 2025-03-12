@@ -47,14 +47,15 @@ local function buatGUI()
     auto_farm_aktif = not auto_farm_aktif
     if auto_farm_aktif then
       autoFarmButton.Text = "AUTO FARM (ON)"
-      -- Jalankan auto farm di thread terpisah
-      task.spawn(function()
+      -- Gunakan coroutine.wrap
+      local farmCoroutine = coroutine.wrap(function()
         while auto_farm_aktif do
           autoFarm()
-          task.wait() -- Hindari infinite loop yang membebani
+          task.wait()
         end
         autoFarmButton.Text = tombol_auto_farm_text
       end)
+      farmCoroutine() -- Jalankan coroutine
     else
       autoFarmButton.Text = tombol_auto_farm_text
     end
@@ -65,34 +66,74 @@ end
 
 -- Fungsi untuk melakukan klik (simulasi)
 local function simulateClick()
-  local UserInputService = game:GetService("UserInputService")
-  UserInputService:MouseButton1Down(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)) -- Klik tengah layar
-  task.wait(delay_click)
-  UserInputService:MouseButton1Up(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2))
+  -- Coba gunakan fireclick jika tersedia
+  if fireclick then
+    print("AutoFarm: Menggunakan fireclick()")
+    fireclick()
+  else
+    -- Alternatif: Simulasikan event mouse (mungkin tidak berfungsi di semua exploit)
+    local UserInputService = game:GetService("UserInputService")
+    if not UserInputService then
+      warn("AutoFarm: UserInputService tidak tersedia!")
+      return
+    end
+    print("AutoFarm: Menggunakan UserInputService untuk klik")
+    UserInputService:MouseButton1Down(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2))
+    task.wait(delay_click)
+    UserInputService:MouseButton1Up(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2))
+  end
+  print("AutoFarm: simulateClick() selesai")
 end
 
 -- Fungsi untuk melakukan spam tombol
 local function spamKey(key, duration)
   local UserInputService = game:GetService("UserInputService")
+  if not UserInputService then
+    warn("AutoFarm: UserInputService tidak tersedia!")
+    return
+  end
+
   local endTime = time() + duration
+  local keyCode = Enum.KeyCode[string.upper(key)]
+  if not keyCode then
+    warn("AutoFarm: Keycode invalid: " .. key)
+    return
+  end
+
+  print("AutoFarm: Memulai spam tombol " .. key)
   while time() < endTime do
-    UserInputService:SimulateKeyStroke(Enum.KeyCode[key], true)
+    UserInputService:SimulateKeyStroke(keyCode, true)
     task.wait(0.05) -- Sesuaikan delay jika perlu
-    UserInputService:SimulateKeyStroke(Enum.KeyCode[key], false)
+    UserInputService:SimulateKeyStroke(keyCode, false)
     task.wait(0.05)
   end
+  print("AutoFarm: Selesai spam tombol " .. key)
 end
 
 -- Fungsi utama auto farm
 local function autoFarm()
+  print("AutoFarm: autoFarm() dijalankan")
   simulateClick()
   task.wait(jeda_sebelum_spam)
   spamKey(string.upper(key_spam), durasi_spam) -- Konversi ke uppercase untuk Enum.KeyCode
+
   local UserInputService = game:GetService("UserInputService")
-  UserInputService:SimulateKeyStroke(Enum.KeyCode[string.upper(key_interact)], true)
+  if not UserInputService then
+    warn("AutoFarm: UserInputService tidak tersedia!")
+    return
+  end
+
+  local keyCode = Enum.KeyCode[string.upper(key_interact)]
+    if not keyCode then
+    warn("AutoFarm: Keycode invalid: " .. key_interact)
+    return
+  end
+  UserInputService:SimulateKeyStroke(keyCode, true)
   task.wait(0.1)
-  UserInputService:SimulateKeyStroke(Enum.KeyCode[string.upper(key_interact)], false)
+  UserInputService:SimulateKeyStroke(keyCode, false)
+  print("AutoFarm: autoFarm() selesai")
 end
 
 -- Inisialisasi GUI
 buatGUI()
+print("AutoFarm: Script diinisialisasi")
